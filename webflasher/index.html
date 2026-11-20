@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#10151d">
+  <title>Air-Control · Web Flasher</title>
+  <style>
+    :root{color-scheme:dark;--bg:#0b1017;--panel:#131c27;--panel2:#182433;--line:#29384a;--text:#edf3fa;--muted:#9aabba;--accent:#e4a23b;--green:#50c58a;--red:#f07178;--blue:#73a9ed}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -20%,#243449 0,var(--bg) 58%);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh}
+    .wrap{width:min(920px,calc(100% - 32px));margin:42px auto 64px}.top{display:flex;align-items:center;gap:14px;margin-bottom:26px}.logo{width:46px;height:46px;border-radius:13px;background:linear-gradient(145deg,#f0b34e,#b76d20);display:grid;place-items:center;color:#17130d;font-weight:900;font-size:23px;box-shadow:0 8px 28px #e4a23b30}
+    h1{font-size:clamp(25px,4vw,34px);line-height:1.1;margin:0}.sub{color:var(--muted);margin:5px 0 0}.panel{background:linear-gradient(180deg,#172230f5,#111a25f5);border:1px solid var(--line);border-radius:18px;padding:22px;margin:16px 0;box-shadow:0 16px 50px #0003}
+    .step{display:flex;align-items:center;gap:10px;margin:0 0 16px;font-size:18px}.num{width:27px;height:27px;border-radius:9px;background:#e4a23b20;color:var(--accent);display:grid;place-items:center;font-weight:750;font-size:14px}
+    label{display:block;color:#c7d3df;font-weight:650;margin:0 0 8px}.hint,.muted{color:var(--muted);font-size:13px}.field{width:100%;background:#0d151f;color:var(--text);border:1px solid #35465a;border-radius:10px;padding:12px 13px;font:inherit;outline:none}.field:focus{border-color:var(--accent);box-shadow:0 0 0 3px #e4a23b20}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.drop{border:1.5px dashed #53677d;border-radius:14px;background:#0d151c;padding:25px;text-align:center;transition:.15s}.drop.drag{border-color:var(--accent);background:#e4a23b10}.drop strong{display:block;margin-bottom:4px}.drop input{max-width:100%;margin-top:12px;color:var(--muted)}
+    .filemeta{margin-top:12px;padding:10px 12px;background:#0a121a;border-radius:9px;color:var(--muted);font:12px ui-monospace,monospace;overflow-wrap:anywhere;white-space:pre-wrap}
+    .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.btn{border:1px solid #3a4b5f;background:#202e3d;color:var(--text);border-radius:10px;padding:11px 17px;font:inherit;font-weight:700;cursor:pointer}.btn.primary{background:var(--accent);border-color:var(--accent);color:#1c170e}.btn:disabled{opacity:.4;cursor:not-allowed}.btn:not(:disabled):hover{filter:brightness(1.1)}
+    .status{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:13px;margin-top:14px}.dot{width:9px;height:9px;border-radius:50%;background:#738396}.dot.ok{background:var(--green)}.dot.bad{background:var(--red)}.dot.busy{background:var(--accent);box-shadow:0 0 0 5px #e4a23b20}
+    .progress{height:12px;border-radius:20px;background:#0a1119;overflow:hidden;border:1px solid #28384a;margin-top:13px}.bar{height:100%;width:0;background:linear-gradient(90deg,#c17b26,#f0bd61);transition:width .15s}
+    .percent{font:700 22px ui-monospace,monospace;margin-top:8px}.log{height:170px;overflow:auto;background:#080e14;border:1px solid #263444;border-radius:10px;padding:12px;font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;color:#b8c8d8;white-space:pre-wrap;overflow-wrap:anywhere}
+    .notice{border-left:3px solid var(--accent);padding:10px 13px;background:#e4a23b0d;color:#c4cfda;border-radius:0 9px 9px 0;font-size:13px;margin-top:15px}.notice strong{color:#f0bd61}.foot{text-align:center;color:#718196;font-size:12px;margin-top:24px}.link{color:#e7b15b;text-decoration:none}
+    @media(max-width:650px){.wrap{margin:24px auto 42px}.panel{padding:17px}.grid{grid-template-columns:1fr}.top{align-items:flex-start}.drop{padding:20px}}
+  </style>
+</head>
+<body>
+<main class="wrap">
+  <header class="top">
+    <div class="logo">AC</div>
+    <div><h1>Air-Control Web Flasher</h1><p class="sub">Ручная прошивка ESP32 из Intel HEX прямо в браузере</p></div>
+  </header>
+
+  <section class="panel">
+    <h2 class="step"><span class="num">1</span> Выбери устройство и HEX-файл</h2>
+    <div class="grid">
+      <div>
+        <label for="target">Устройство</label>
+        <select class="field" id="target">
+          <option value="controller">Центральный контроллер</option>
+          <option value="keychain">Брелок · TTGO T-Display</option>
+          <option value="remote">Основной пульт · T-Display-S3</option>
+        </select>
+        <p class="hint">Тип микроконтроллера дополнительно определяется при подключении.</p>
+      </div>
+      <div>
+        <label>Файл прошивки</label>
+        <div class="drop" id="drop">
+          <strong>Перетащи HEX-файл сюда</strong>
+          <span class="hint">или выбери его на компьютере</span>
+          <input id="file" type="file" accept=".hex,.ihx,.txt">
+        </div>
+      </div>
+    </div>
+    <div class="filemeta" id="filemeta">Файл не выбран</div>
+    <div class="notice"><strong>Важно:</strong> загружай HEX, предназначенный именно для выбранной платы. Адреса из Intel HEX используются напрямую; пустые области между сегментами не стираются. Перед прошивкой отключи управление клапанами и компрессором.</div>
+  </section>
+
+  <section class="panel">
+    <h2 class="step"><span class="num">2</span> Подключи плату</h2>
+    <p class="hint">Нужен USB-кабель с передачей данных и настольный Chrome или Edge. При необходимости переведи плату в режим загрузчика кнопками BOOT/RESET.</p>
+    <div class="actions">
+      <button class="btn primary" id="connect">Подключить устройство</button>
+      <button class="btn" id="disconnect" disabled>Отключить</button>
+    </div>
+    <div class="status"><span class="dot" id="connDot"></span><span id="connStatus">Устройство не подключено</span></div>
+  </section>
+
+  <section class="panel">
+    <h2 class="step"><span class="num">3</span> Прошей устройство</h2>
+    <div class="grid">
+      <div><label for="baud">Скорость соединения</label><select class="field" id="baud"><option value="115200">115200 (надёжнее)</option><option value="460800">460800</option><option value="921600">921600</option></select></div>
+      <div><label for="flashSize">Размер Flash</label><select class="field" id="flashSize"><option value="detect">Автоопределение</option><option value="4MB">4 MB</option><option value="8MB">8 MB</option><option value="16MB">16 MB</option></select></div>
+    </div>
+    <div class="actions"><button class="btn primary" id="flash" disabled>Начать прошивку</button></div>
+    <div class="progress"><div class="bar" id="bar"></div></div>
+    <div class="percent" id="percent">0%</div>
+    <div class="status"><span class="dot" id="flashDot"></span><span id="flashStatus">Ожидание прошивки</span></div>
+  </section>
+
+  <section class="panel">
+    <h2 class="step"><span class="num">4</span> Журнал</h2>
+    <div class="log" id="log" aria-live="polite">Air-Control Web Flasher готов. Выбери HEX-файл.</div>
+    <div class="actions"><button class="btn" id="clearLog">Очистить журнал</button></div>
+  </section>
+  <footer class="foot">Air-Control · Web Serial · <a class="link" href="https://github.com/1filth1/air-control" target="_blank" rel="noopener">GitHub repository</a><br>Прошивка выполняется локально в браузере. Файл не отправляется на сервер.</footer>
+</main>
+
+<script type="module">
+  import { ESPLoader, Transport, parseIntelHex } from "https://esm.sh/esptool-js@0.7.1?bundle";
+
+  const $ = (id) => document.getElementById(id);
+  let selectedFile = null;
+  let parsedSegments = null;
+  let port = null;
+  let transport = null;
+  let loader = null;
+  let connected = false;
+  let flashing = false;
+
+  function log(message) {
+    const stamp = new Date().toLocaleTimeString();
+    $("log").textContent += "\n[" + stamp + "] " + message;
+    $("log").scrollTop = $("log").scrollHeight;
+  }
+  function setConnection(ok, message) {
+    connected = ok;
+    $("connDot").className = "dot " + (ok ? "ok" : "");
+    $("connStatus").textContent = message;
+    $("connect").disabled = ok || flashing;
+    $("disconnect").disabled = !ok || flashing;
+    updateFlashButton();
+  }
+  function setFlashStatus(kind, message) {
+    $("flashDot").className = "dot " + (kind || "");
+    $("flashStatus").textContent = message;
+  }
+  function updateFlashButton() {
+    $("flash").disabled = !connected || !parsedSegments || flashing;
+  }
+  function formatSize(bytes) {
+    return bytes > 1024 * 1024 ? (bytes / 1024 / 1024).toFixed(2) + " MB" : (bytes / 1024).toFixed(1) + " KB";
+  }
+
+  async function loadHex(file) {
+    selectedFile = file;
+    parsedSegments = null;
+    updateFlashButton();
+    if (!file) {
+      $("filemeta").textContent = "Файл не выбран";
+      return;
+    }
+    try {
+      const text = await file.text();
+      if (!text.trim().startsWith(":")) throw new Error("Файл не похож на Intel HEX (строки должны начинаться с ':').");
+      const segments = parseIntelHex(text);
+      if (!segments.length) throw new Error("В HEX не найдено ни одного блока данных.");
+      const bytes = segments.reduce((sum, s) => sum + s.data.length, 0);
+      const start = Math.min(...segments.map(s => s.address));
+      const end = Math.max(...segments.map(s => s.address + s.data.length));
+      parsedSegments = segments;
+      $("filemeta").textContent = file.name + "\n" + segments.length + " блок(ов) · " + formatSize(bytes) + "\nДиапазон адресов: 0x" + start.toString(16).toUpperCase() + " – 0x" + end.toString(16).toUpperCase();
+      log("HEX проверен: " + file.name + ", " + segments.length + " блок(ов), " + bytes + " байт.");
+      updateFlashButton();
+    } catch (error) {
+      $("filemeta").textContent = file.name + "\nОшибка: " + error.message;
+      log("Ошибка чтения HEX: " + error.message);
+      parsedSegments = null;
+      updateFlashButton();
+    }
+  }
+
+  $("file").addEventListener("change", e => loadHex(e.target.files[0]));
+  $("drop").addEventListener("dragover", e => { e.preventDefault(); $("drop").classList.add("drag"); });
+  $("drop").addEventListener("dragleave", () => $("drop").classList.remove("drag"));
+  $("drop").addEventListener("drop", e => {
+    e.preventDefault(); $("drop").classList.remove("drag");
+    const file = e.dataTransfer.files[0];
+    if (file) { $("file").files = e.dataTransfer.files; loadHex(file); }
+  });
+
+  const terminal = {
+    clean() {},
+    writeLine(data) { log(String(data)); },
+    write(data) { if (data) log(String(data).trimEnd()); }
+  };
+
+  $("connect").addEventListener("click", async () => {
+    if (!("serial" in navigator)) {
+      setConnection(false, "Web Serial не поддерживается. Открой страницу в Chrome или Edge на компьютере.");
+      log("Web Serial API недоступен в этом браузере.");
+      return;
+    }
+    try {
+      $("connect").disabled = true;
+      log("Ожидание выбора USB/COM-порта…");
+      port = await navigator.serial.requestPort();
+      await port.open({ baudRate: Number($("baud").value) });
+      transport = new Transport(port, true);
+      loader = new ESPLoader({ transport, baudrate: Number($("baud").value), terminal, debugLogging: false });
+      setFlashStatus("busy", "Определение микроконтроллера…");
+      const chip = await loader.main();
+      setConnection(true, "Подключено · " + chip);
+      setFlashStatus("", "Готово к прошивке");
+      log("Устройство подключено: " + chip);
+    } catch (error) {
+      log("Не удалось подключиться: " + error.message);
+      try { if (transport) await transport.disconnect(); else if (port) await port.close(); } catch {}
+      port = transport = loader = null;
+      setConnection(false, "Не удалось подключиться");
+      setFlashStatus("bad", error.message);
+    }
+  });
+
+  $("disconnect").addEventListener("click", async () => {
+    try { if (transport) await transport.disconnect(); else if (port) await port.close(); } catch (error) { log("Ошибка отключения: " + error.message); }
+    port = transport = loader = null;
+    setConnection(false, "Устройство отключено");
+    log("Соединение закрыто.");
+  });
+
+  $("flash").addEventListener("click", async () => {
+    if (!loader || !parsedSegments || flashing) return;
+    const target = $("target").selectedOptions[0].textContent;
+    if (!confirm("Прошить выбранную плату?\n\n" + target + "\n" + selectedFile.name + "\n\nУбедись, что HEX предназначен именно для этой платы.")) return;
+    flashing = true;
+    updateFlashButton();
+    $("connect").disabled = true;
+    $("disconnect").disabled = true;
+    $("bar").style.width = "0%";
+    $("percent").textContent = "0%";
+    setFlashStatus("busy", "Идёт прошивка… Не отключай USB.");
+    log("Начало прошивки: " + target + " / " + selectedFile.name);
+    const totalBytes = parsedSegments.reduce((sum, s) => sum + s.data.length, 0);
+    try {
+      await loader.writeFlash({
+        fileArray: parsedSegments,
+        flashMode: "dio",
+        flashFreq: "40m",
+        flashSize: $("flashSize").value,
+        eraseAll: false,
+        compress: true,
+        reportProgress: (fileIndex, written, total) => {
+          const before = parsedSegments.slice(0, fileIndex).reduce((sum, s) => sum + s.data.length, 0);
+          const done = Math.min(totalBytes, before + written);
+          const pct = Math.min(100, Math.round(done / totalBytes * 100));
+          $("bar").style.width = pct + "%";
+          $("percent").textContent = pct + "%";
+          $("flashStatus").textContent = "Запись блока " + (fileIndex + 1) + " из " + parsedSegments.length + " · " + formatSize(done) + " / " + formatSize(totalBytes);
+        }
+      });
+      log("Запись завершена. Перезагрузка платы…");
+      await loader.after("hard_reset");
+      $("bar").style.width = "100%";
+      $("percent").textContent = "100%";
+      setFlashStatus("ok", "Прошивка успешно записана. Плата перезагружена.");
+      log("Готово: прошивка успешно записана.");
+    } catch (error) {
+      setFlashStatus("bad", "Ошибка прошивки: " + error.message);
+      log("ОШИБКА ПРОШИВКИ: " + error.message);
+    } finally {
+      flashing = false;
+      $("connect").disabled = connected;
+      $("disconnect").disabled = !connected;
+      updateFlashButton();
+    }
+  });
+
+  $("clearLog").addEventListener("click", () => $("log").textContent = "Журнал очищен.");
+  if (!("serial" in navigator)) {
+    setConnection(false, "Требуется Chrome или Edge на компьютере (Web Serial API).");
+  }
+</script>
+</body>
+</html>
